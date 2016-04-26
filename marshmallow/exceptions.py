@@ -12,8 +12,8 @@ class ValidationError(MarshmallowError):
     """Raised when validation fails on a field. Validators and custom fields should
     raise this exception.
 
-    :param message: An error message, list of error messages, or dict of
-        error messages.
+    :param message: An error message (string), list of error messages (as strings),
+        or dict of error messages.
     :param list field_names: Field names to store the error on.
         If `None`, the error is stored in its default location.
     :param list fields: `Field` objects to which the error applies.
@@ -24,8 +24,8 @@ class ValidationError(MarshmallowError):
             messages = [message]
         else:
             messages = message
-        #: String, list, or dictionary of error messages.
-        #: If a `dict`, the keys will be field names and the values will be lists of
+        #: String, list of strings, or dictionary of error messages.
+        #: If a `dict`, the keys will be field names and the values will be error
         #: messages.
         self.messages = messages
         #: List of field objects which failed validation.
