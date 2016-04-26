@@ -20,6 +20,7 @@ from marshmallow.exceptions import ValidationError
 from marshmallow.orderedset import OrderedSet
 from marshmallow.decorators import (PRE_DUMP, POST_DUMP, PRE_LOAD, POST_LOAD,
                                     VALIDATES, VALIDATES_SCHEMA)
+from marshmallow.utils import merge_errors
 
 
 #: Return type of :meth:`Schema.dump` including serialized data and errors
@@ -621,12 +622,12 @@ class BaseSchema(base.SchemaABC):
             self._invoke_validators(pass_many=True, data=result, original_data=data, many=many,
                                     field_errors=field_errors)
         except ValidationError as err:
-            errors.update(err.messages)
+            errors = merge_errors(errors, err.messages)
         try:
             self._invoke_validators(pass_many=False, data=result, original_data=data, many=many,
                                     field_errors=field_errors)
         except ValidationError as err:
-            errors.update(err.messages)
+            errors = merge_errors(errors, err.messages)
         if errors:
             # TODO: Remove self.__error_handler__ in a later release
             if self.__error_handler__ and callable(self.__error_handler__):
@@ -827,14 +828,14 @@ class BaseSchema(base.SchemaABC):
                                                   item, original_data, self.fields, many=many,
                                                   index=idx, pass_original=pass_original)
                     except ValidationError as err:
-                        errors.update(err.messages)
+                        errors = merge_errors(errors, err.messages)
             else:
                 try:
                     self._unmarshal.run_validator(validator,
                                               data, original_data, self.fields, many=many,
                                               pass_original=pass_original)
                 except ValidationError as err:
-                    errors.update(err.messages)
+                    errors = merge_errors(errors, err.messages)
         if errors:
             raise ValidationError(errors)
         return None

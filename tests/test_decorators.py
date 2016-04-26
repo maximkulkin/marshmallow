@@ -435,7 +435,7 @@ class TestValidatesSchemaDecorator:
                 def check(datum):
                     for key, val in datum.items():
                         if key not in self.fields:
-                            raise ValidationError({'code': 'invalid_field'})
+                            raise ValidationError('invalid_field')
                 if many:
                     for each in original_data:
                         check(each)
@@ -446,7 +446,7 @@ class TestValidatesSchemaDecorator:
         errors = schema.validate({'foo': 4, 'baz': 42})
         assert '_schema' in errors
         assert len(errors['_schema']) == 1
-        assert errors['_schema'][0] == {'code': 'invalid_field'}
+        assert errors['_schema'][0] == 'invalid_field'
 
         errors = schema.validate({'foo': '4'})
         assert '_schema' in errors
@@ -457,7 +457,7 @@ class TestValidatesSchemaDecorator:
         errors = schema.validate([{'foo': 4, 'baz': 42}], many=True)
         assert '_schema' in errors
         assert len(errors['_schema']) == 1
-        assert errors['_schema'][0] == {'code': 'invalid_field'}
+        assert errors['_schema'][0] == 'invalid_field'
 
     # https://github.com/marshmallow-code/marshmallow/issues/273
     def test_allow_arbitrary_field_names_in_error(self):
@@ -518,3 +518,33 @@ class TestValidatesSchemaDecorator:
         errors = schema.validate([{'foo': 3, 'bar': 'not an int'}], many=True)
         assert 'bar' in errors[0]
         assert '_schema' not in errors
+
+    def test_allow_reporting_field_errors_in_schema_validator(self):
+
+        class NestedSchema(Schema):
+            baz = fields.Int(required=True)
+
+        class MySchema(Schema):
+            foo = fields.Int(required=True)
+            bar = fields.Nested(NestedSchema, required=True)
+            bam = fields.Int(required=True)
+
+            @validates_schema(skip_on_field_errors=True)
+            def consistency_validation(self, data):
+                errors = {}
+                if data['bar']['baz'] != data['foo']:
+                    errors['bar'] = {'baz': 'Non-matching value'}
+
+                if data['bam'] > data['foo']:
+                    errors['bam'] = 'Value should be less than foo'
+
+                if errors:
+                    raise ValidationError(errors)
+
+        schema = MySchema()
+        errors = schema.validate({'foo': 2, 'bar': {'baz': 5}, 'bam': 6})
+        assert 'bar' in errors
+        assert 'baz' in errors['bar']
+        assert errors['bar']['baz'] == 'Non-matching value'
+        assert 'bam' in errors
+        assert errors['bam'] == 'Value should be less than foo'
