@@ -1,6 +1,22 @@
 Changelog
 ---------
 
+2.9.0 (2016-07-06)
+++++++++++++++++++
+
+- ``Decimal`` field coerces input values to a string before deserializing to a `decimal.Decimal` object in order to avoid transformation of float values under 12 significant digits (:issue:`434`, :issue:`435`). Thanks :user:`davidthornton` for the PR.
+
+2.8.0 (2016-06-23)
+++++++++++++++++++
+
+Features:
+
+- Allow ``only`` and ``exclude`` parameters to take nested fields, using dot-delimited syntax (e.g. ``only=['blog.author.email']``) (:issue:`402`). Thanks :user:`Tim-Erwin` and :user:`deckar01` for the discussion and implementation.
+
+Support:
+
+- Update tasks.py for compatibility with invoke>=0.13.0. Thanks :user:`deckar01`.
+
 2.7.3 (2016-05-05)
 ++++++++++++++++++
 
