@@ -1290,9 +1290,37 @@ class TestNestedSchema:
         class BlogRequiredSchema(Schema):
             user = fields.Nested(UserSimpleSchema, required=True)
 
-        _, errs = BlogRequiredSchema().load({})
+        _, errs = BlogRequiredSchema().load({'user': {}})
         assert 'timeRegistered' in errs['user']
         assert 'datesInfo' in errs['user']
+
+    def test_required_nested_fields_with_errors(self):
+        required_message = 'Missing required field'
+
+        class UserSchema(Schema):
+            name = fields.String(required=True)
+
+        class BlogSchema(Schema):
+            user = fields.Nested(UserSchema, required=True,
+                                 error_messages={'required': required_message})
+
+        _, errs = BlogSchema().load({})
+        assert 'user' in errs
+        assert errs['user'] == [required_message]
+
+    def test_required_nested_fields_with_no_errors(self):
+        required_message = 'Missing required field'
+
+        class UserSchema(Schema):
+            name = fields.String()
+
+        class BlogSchema(Schema):
+            user = fields.Nested(UserSchema, required=True,
+                                 error_messages={'required': required_message})
+
+        _, errs = BlogSchema().load({})
+        assert 'user' in errs
+        assert errs['user'] == [required_message]
 
     def test_nested_none(self):
         class BlogDefaultSchema(Schema):
@@ -1463,39 +1491,6 @@ class TestNestedSchema:
         assert 'inner' in errors
         assert '_field' in errors['inner']
 
-    def test_missing_required_nested_field(self):
-        class Inner(Schema):
-            inner_req = fields.Field(required=True, error_messages={'required': 'Oops'})
-            inner_not_req = fields.Field()
-            inner_bad = fields.Integer(required=True, error_messages={'required': 'Int plz'})
-
-        class Middle(Schema):
-            middle_many_req = fields.Nested(Inner, required=True, many=True)
-            middle_req_2 = fields.Nested(Inner, required=True)
-            middle_not_req = fields.Nested(Inner)
-            middle_field = fields.Field(required=True, error_messages={'required': 'middlin'})
-
-        class Outer(Schema):
-            outer_req = fields.Nested(Middle, required=True)
-            outer_many_req = fields.Nested(Middle, required=True, many=True)
-            outer_not_req = fields.Nested(Middle)
-            outer_many_not_req = fields.Nested(Middle, many=True)
-
-        outer = Outer()
-        expected = {
-            'outer_many_req': {0: {'middle_many_req': {0: {'inner_bad': ['Int plz'],
-                                                           'inner_req': ['Oops']}},
-                                   'middle_req_2': {'inner_bad': ['Int plz'],
-                                                    'inner_req': ['Oops']},
-                                   'middle_field': ['middlin']}},
-            'outer_req': {'middle_field': ['middlin'],
-                           'middle_many_req': {0: {'inner_bad': ['Int plz'],
-                                              'inner_req': ['Oops']}},
-                           'middle_req_2': {'inner_bad': ['Int plz'],
-                                            'inner_req': ['Oops']}}}
-        data, errors = outer.load({})
-        assert errors == expected
-
 class TestSelfReference:
 
     @pytest.fixture
@@ -1564,9 +1559,14 @@ class TestSelfReference:
         data, errors = DeepSchema().load({})
         assert data == {}
 
+        assert errors == {'basic': [u'Missing data for required field.']}
+
+        data, errors = DeepSchema().load({'basic': {}})
+        assert data == {}
+
         assert errors == {
             'basic': {
-                'sub_basics':  [u'Missing data for required field.'] ,
+                'sub_basics': [u'Missing data for required field.'],
                 'simple_field': [u'Missing data for required field.'],
             }
         }
